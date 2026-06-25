@@ -10,7 +10,7 @@ background:#080808;
 
 color:white;
 
-font-family:sans-serif;
+font-family:Arial;
 
 }
 
@@ -22,15 +22,15 @@ gap:10px;
 
 padding:12px;
 
-background:#121212;
+background:#111;
 
 }
 
-.logo{
+.brand{
 
-font-size:20px;
+font-size:22px;
 
-font-weight:700;
+font-weight:bold;
 
 }
 
@@ -46,7 +46,7 @@ border-radius:12px;
 
 }
 
-.app{
+.container{
 
 display:flex;
 
@@ -74,11 +74,11 @@ cursor:pointer;
 
 .cat:hover{
 
-background:#1f1f1f;
+background:#222;
 
 }
 
-section{
+main{
 
 flex:1;
 
@@ -90,13 +90,13 @@ video{
 
 width:100%;
 
-height:40vh;
+height:42vh;
 
 background:black;
 
 }
 
-#grid{
+.grid{
 
 display:grid;
 
@@ -104,7 +104,7 @@ grid-template-columns:
 repeat(
 auto-fill,
 minmax(
-180px,
+170px,
 1fr
 )
 );
@@ -117,11 +117,11 @@ padding:12px;
 
 .card{
 
-background:#181818;
-
-padding:12px;
+background:#171717;
 
 border-radius:16px;
+
+padding:12px;
 
 text-align:center;
 
@@ -129,17 +129,11 @@ cursor:pointer;
 
 }
 
-.card:hover{
-
-transform:scale(1.02);
-
-}
-
 .card img{
 
-width:75px;
+width:70px;
 
-height:75px;
+height:70px;
 
 border-radius:50%;
 
@@ -151,13 +145,11 @@ object-fit:cover;
 
 margin-top:8px;
 
-font-size:14px;
-
 }
 
 @media(max-width:700px){
 
-.app{
+.container{
 
 flex-direction:column;
 
@@ -168,6 +160,8 @@ aside{
 width:100%;
 
 display:flex;
+
+overflow:auto;
 
 }
 
