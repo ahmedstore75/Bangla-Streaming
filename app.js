@@ -1,5 +1,4 @@
-const HOST=
-"https://hydraa.st:80";
+const HOST = "https://hydraa.st:80";
 const USER = "sameh68g";
 const PASS = "15472848";
 
