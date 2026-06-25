@@ -1,84 +1,63 @@
 const HOST="http://xcv70.fyi:8080";
-
 const USER="adil2912";
-
 const PASS="adil1229";
 
-let all=[];
+let allChannels=[];
 
-async function get(url){
-
-const r=
-await fetch(url);
-
-return r.json();
-
+async function fetchJSON(url){
+const r=await fetch(url);
+return await r.json();
 }
 
 async function loadCategories(){
 
 try{
 
-const data=
-
-await get(
-
+const cats=await fetchJSON(
 `${HOST}/player_api.php?username=${USER}&password=${PASS}&action=get_live_categories`
-
 );
 
 const box=
-
-document.getElementById(
-"categories"
-);
+document.getElementById("categories");
 
 box.innerHTML="";
 
-data.forEach(c=>{
+cats.forEach(cat=>{
 
-const d=
-document.createElement(
-"div"
+const item=
+document.createElement("div");
+
+item.className="cat";
+
+item.textContent=
+cat.category_name;
+
+item.onclick=()=>{
+
+loadChannels(
+cat.category_id
 );
 
-d.className=
-"cat";
+};
 
-d.innerHTML=
-c.category_name;
-
-d.onclick=
-()=>loadChannels(
-c.category_id
-);
-
-box.append(
-d
-);
+box.appendChild(item);
 
 });
 
-if(
-data.length
-){
+if(cats.length){
 
 loadChannels(
-data[0].category_id
+cats[0].category_id
 );
 
 }
 
-}catch{
+}catch(e){
 
-document
-.getElementById(
+document.getElementById(
 "categories"
-)
-
-.innerHTML=
-
-"Load Failed";
+).innerHTML=
+"Category Load Failed";
 
 }
 
@@ -86,28 +65,44 @@ document
 
 async function loadChannels(id){
 
-all=
+try{
 
-await get(
+allChannels=
+await fetchJSON(
 
 `${HOST}/player_api.php?username=${USER}&password=${PASS}&action=get_live_streams&category_id=${id}`
 
 );
 
-render(all);
+render(
+allChannels
+);
+
+}catch{
+
+document
+.getElementById(
+"channels"
+)
+
+.innerHTML=
+
+"Channel Load Failed";
 
 }
 
-function render(data){
+}
 
-const box=
+function render(list){
+
+const grid=
 document.getElementById(
 "channels"
 );
 
-box.innerHTML="";
+grid.innerHTML="";
 
-data.forEach(ch=>{
+list.forEach(ch=>{
 
 const card=
 document.createElement(
@@ -117,12 +112,13 @@ document.createElement(
 card.className=
 "card";
 
-card.innerHTML=
+card.innerHTML=`
 
-`
-<img src="${ch.stream_icon||''}">
+<img
+src="${ch.stream_icon||''}"
+onerror="this.style.display='none'">
 
-<div class=name>
+<div class="name">
 
 ${ch.name}
 
@@ -135,7 +131,7 @@ card.onclick=
 ch.stream_id
 );
 
-box.append(
+grid.appendChild(
 card
 );
 
@@ -154,25 +150,18 @@ document.getElementById(
 "player"
 );
 
-if(
-Hls.isSupported()
-){
+if(Hls.isSupported()){
 
 const hls=
 new Hls();
 
-hls.loadSource(
-url
-);
+hls.loadSource(url);
 
-hls.attachMedia(
-video
-);
+hls.attachMedia(video);
 
 }else{
 
-video.src=
-url;
+video.src=url;
 
 }
 
@@ -184,32 +173,30 @@ document
 "search"
 )
 
-.oninput=
+.addEventListener(
+"input",
 
 e=>{
 
 const q=
-
 e.target.value
-
 .toLowerCase();
 
 render(
 
-all.filter(
-
+allChannels.filter(
 x=>
 
 x.name
-
 .toLowerCase()
-
 .includes(q)
 
 )
 
 );
 
-};
+}
+
+);
 
 loadCategories();
