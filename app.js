@@ -1,45 +1,123 @@
-// ===== শুধু এগুলো বসাবেন =====
-
 const HOST="http://xcv70.fyi:8080";
-
 const USER="adil2912";
-
 const PASS="adil1229";
 
-// ===========================
+let channels=[];
 
-let cache=[];
+async function api(url){
 
-async function fetchAPI(action){
+try{
 
-const url=
+const res=await fetch(url);
 
-`${HOST}/player_api.php?username=${USER}&password=${PASS}&action=${action}`;
+if(!res.ok){
 
-const r=
-await fetch(url);
+throw new Error(
+"HTTP "+res.status
+);
 
-return r.json();
+}
+
+return await res.json();
+
+}
+
+catch(err){
+
+document.getElementById(
+"sidebar"
+).innerHTML=
+
+`
+<div class="cat">
+Connection Failed
+</div>
+`;
+
+console.log(err);
+
+return [];
+
+}
 
 }
 
 async function loadCategories(){
 
-try{
+const url=
 
-const cats=
-await fetchAPI(
-"get_live_categories"
-);
+`${HOST}/player_api.php?username=${USER}&password=${PASS}&action=get_live_categories`;
 
-const side=
+const data=
+await api(url);
+
+const box=
 document.getElementById(
 "sidebar"
 );
 
-side.innerHTML="";
+if(!data.length){
 
-cats.forEach(c=>{
+box.innerHTML=
+"<div class='cat'>No Category</div>";
+
+return;
+
+}
+
+box.innerHTML="";
+
+data.forEach(c=>{
+
+const div=
+document.createElement(
+"div"
+);
+
+div.className=
+"cat";
+
+div.innerText=
+c.category_name;
+
+div.onclick=
+()=>loadChannels(
+c.category_id
+);
+
+box.append(div);
+
+});
+
+loadChannels(
+data[0].category_id
+);
+
+}
+
+async function loadChannels(id){
+
+const url=
+
+`${HOST}/player_api.php?username=${USER}&password=${PASS}&action=get_live_streams&category_id=${id}`;
+
+channels=
+await api(url);
+
+render(channels);
+
+}
+
+function render(data){
+
+const grid=
+document.getElementById(
+"channels"
+);
+
+grid.innerHTML="";
+
+data.forEach(ch=>{
 
 const el=
 document.createElement(
@@ -47,107 +125,24 @@ document.createElement(
 );
 
 el.className=
-"cat";
-
-el.textContent=
-c.category_name;
-
-el.onclick=
-()=>loadChannels(
-c.category_id
-);
-
-side.append(
-el
-);
-
-});
-
-if(
-cats.length
-){
-
-loadChannels(
-cats[0].category_id
-);
-
-}
-
-}
-catch{
-
-document
-.getElementById(
-"sidebar"
-)
-
-.innerHTML=
-
-"Server Error";
-
-}
-
-}
-
-async function loadChannels(id){
-
-const r=
-await fetch(
-
-`${HOST}/player_api.php?username=${USER}&password=${PASS}&action=get_live_streams&category_id=${id}`
-
-);
-
-cache=
-await r.json();
-
-render(
-cache
-);
-
-}
-
-function render(list){
-
-const box=
-document.getElementById(
-"channels"
-);
-
-box.innerHTML="";
-
-list.forEach(ch=>{
-
-const card=
-document.createElement(
-"div"
-);
-
-card.className=
 "card";
 
-card.innerHTML=
+el.innerHTML=
 
 `
-<img
-src="${ch.stream_icon||''}"
->
-
+<img src="${ch.stream_icon||''}">
 <div class="name">
-
 ${ch.name}
-
 </div>
-
 `;
 
-card.onclick=
+el.onclick=
 ()=>play(
 ch.stream_id
 );
 
-box.append(
-card
+grid.append(
+el
 );
 
 });
@@ -156,7 +151,7 @@ card
 
 function play(id){
 
-const stream=
+const url=
 
 `${HOST}/live/${USER}/${PASS}/${id}.m3u8`;
 
@@ -165,33 +160,24 @@ document.getElementById(
 "player"
 );
 
-if(
-Hls.isSupported()
-){
+if(Hls.isSupported()){
 
 const hls=
 new Hls();
 
-hls.loadSource(
-stream
-);
+hls.loadSource(url);
 
-hls.attachMedia(
-video
-);
+hls.attachMedia(video);
 
-}
-else{
+}else{
 
-video.src=
-stream;
+video.src=url;
 
 }
 
 }
 
 document
-
 .getElementById(
 "search"
 )
@@ -201,24 +187,19 @@ document
 e=>{
 
 const q=
-
 e.target.value
-
 .toLowerCase();
 
 render(
 
-cache.filter(
-
+channels.filter(
 x=>
 
 x.name
 
 .toLowerCase()
 
-.includes(
-q
-)
+.includes(q)
 
 )
 
