@@ -1,7 +1,7 @@
 const HOST=
-"https://corsproxy.io/?http://xcv70.fyi:8080";
-const USER = "adil2912";
-const PASS = "adil1229";
+"https://hydraa.st:80";
+const USER = "sameh68g";
+const PASS = "15472848";
 
 let all = [];
 
