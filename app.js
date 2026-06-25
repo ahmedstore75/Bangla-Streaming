@@ -1,93 +1,67 @@
 const HOST="http://xcv70.fyi:8080";
+
 const USER="adil2912";
+
 const PASS="adil1229";
 
-let channels=[];
+let all=[];
 
-async function api(url){
+async function get(url){
 
-try{
+const r=
+await fetch(url);
 
-const res=await fetch(url);
-
-if(!res.ok){
-
-throw new Error(
-"HTTP "+res.status
-);
-
-}
-
-return await res.json();
-
-}
-
-catch(err){
-
-document.getElementById(
-"sidebar"
-).innerHTML=
-
-`
-<div class="cat">
-Connection Failed
-</div>
-`;
-
-console.log(err);
-
-return [];
-
-}
+return r.json();
 
 }
 
 async function loadCategories(){
 
-const url=
-
-`${HOST}/player_api.php?username=${USER}&password=${PASS}&action=get_live_categories`;
+try{
 
 const data=
-await api(url);
 
-const box=
-document.getElementById(
-"sidebar"
+await get(
+
+`${HOST}/player_api.php?username=${USER}&password=${PASS}&action=get_live_categories`
+
 );
 
-if(!data.length){
+const box=
 
-box.innerHTML=
-"<div class='cat'>No Category</div>";
-
-return;
-
-}
+document.getElementById(
+"categories"
+);
 
 box.innerHTML="";
 
 data.forEach(c=>{
 
-const div=
+const d=
 document.createElement(
 "div"
 );
 
-div.className=
+d.className=
 "cat";
 
-div.innerText=
+d.innerHTML=
 c.category_name;
 
-div.onclick=
+d.onclick=
 ()=>loadChannels(
 c.category_id
 );
 
-box.append(div);
+box.append(
+d
+);
 
 });
+
+if(
+data.length
+){
 
 loadChannels(
 data[0].category_id
@@ -95,54 +69,74 @@ data[0].category_id
 
 }
 
+}catch{
+
+document
+.getElementById(
+"categories"
+)
+
+.innerHTML=
+
+"Load Failed";
+
+}
+
+}
+
 async function loadChannels(id){
 
-const url=
+all=
 
-`${HOST}/player_api.php?username=${USER}&password=${PASS}&action=get_live_streams&category_id=${id}`;
+await get(
 
-channels=
-await api(url);
+`${HOST}/player_api.php?username=${USER}&password=${PASS}&action=get_live_streams&category_id=${id}`
 
-render(channels);
+);
+
+render(all);
 
 }
 
 function render(data){
 
-const grid=
+const box=
 document.getElementById(
 "channels"
 );
 
-grid.innerHTML="";
+box.innerHTML="";
 
 data.forEach(ch=>{
 
-const el=
+const card=
 document.createElement(
 "div"
 );
 
-el.className=
+card.className=
 "card";
 
-el.innerHTML=
+card.innerHTML=
 
 `
 <img src="${ch.stream_icon||''}">
-<div class="name">
+
+<div class=name>
+
 ${ch.name}
+
 </div>
+
 `;
 
-el.onclick=
+card.onclick=
 ()=>play(
 ch.stream_id
 );
 
-grid.append(
-el
+box.append(
+card
 );
 
 });
@@ -160,24 +154,32 @@ document.getElementById(
 "player"
 );
 
-if(Hls.isSupported()){
+if(
+Hls.isSupported()
+){
 
 const hls=
 new Hls();
 
-hls.loadSource(url);
+hls.loadSource(
+url
+);
 
-hls.attachMedia(video);
+hls.attachMedia(
+video
+);
 
 }else{
 
-video.src=url;
+video.src=
+url;
 
 }
 
 }
 
 document
+
 .getElementById(
 "search"
 )
@@ -187,12 +189,15 @@ document
 e=>{
 
 const q=
+
 e.target.value
+
 .toLowerCase();
 
 render(
 
-channels.filter(
+all.filter(
+
 x=>
 
 x.name
