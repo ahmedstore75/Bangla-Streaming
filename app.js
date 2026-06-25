@@ -1,4 +1,5 @@
-const HOST = "http://xcv70.fyi:8080";
+const HOST=
+"https://corsproxy.io/?http://xcv70.fyi:8080";
 const USER = "adil2912";
 const PASS = "adil1229";
 
