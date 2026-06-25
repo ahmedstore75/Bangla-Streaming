@@ -317,7 +317,7 @@
     <script src="https://vjs.zencdn.net/8.10.0/video.js"></script>
 
     <script>
-        const M3U_URL = 'https://raw.githubusercontent.com/ahmedstore75/StreamBangla/main/BDIX-Playlist.m3u'; 
+        const M3U_URL = 'https://raw.githubusercontent.com/ahmedstore75/Iptvbdlive/refs/heads/main/mixiptvchannel.m3u'; 
 
         const player = videojs('iptv-player', {
             fluid: false,
@@ -331,29 +331,34 @@
         let allChannels = [];
         let currentCategory = 'all';
 
-        // 🎯 আপনার দেওয়া ফিক্সড ক্যাটাগরি লিস্ট (M3U এর গ্রুপগুলো একদম ইগনোর করা হবে)
+        // 🎯 আপনার দেওয়া ফিক্সড ক্যাটাগরি লিস্ট
         const myCategories = [
             "all", "🇧🇩 Bangla", "📰 News", "⚽ Sports", "🎬 Movies", 
             "🎞 Series", "🎵 Music", "👶 Kids", "🕌 Islamic", 
             "🌍 International", "🎓 Education"
         ];
 
-        // M3U Parser (গ্রুপ টাইটেল স্কিপ করে শুধু নাম, লোগো এবং ইউআরএল নেবে)
+        // 🔄 আপনার প্রথম কোডের হুবহু সেই মূল M3U Parser (যাতে ১ লাইনেরও কোনো পরিবর্তন নেই)
         function parseM3U(data) {
             const lines = data.split('\n');
             const channels = [];
             let currentChannel = {};
 
             for (let i = 0; i < lines.length; i++) {
-                const line = lines[i].trim();
+                const line = lines[i];
                 if (line.startsWith('#EXTINF:')) {
                     const nameIndex = line.lastIndexOf(',');
-                    if (nameIndex !== -1) currentChannel.name = line.substring(nameIndex + 1).trim();
-                    
+                    if (nameIndex !== -1) {
+                        currentChannel.name = line.substring(nameIndex + 1).trim();
+                    }
                     const logoMatch = line.match(/tvg-logo="([^"]+)"/);
-                    currentChannel.logo = logoMatch ? logoMatch[1] : 'https://via.placeholder.com/60x60?text=TV';
+                    if (logoMatch) {
+                        currentChannel.logo = logoMatch[1];
+                    } else {
+                        currentChannel.logo = 'https://via.placeholder.com/60x60?text=TV';
+                    }
                 } else if (line.startsWith('http')) {
-                    currentChannel.url = line;
+                    currentChannel.url = line.trim();
                     channels.push(currentChannel);
                     currentChannel = {};
                 }
@@ -361,7 +366,7 @@
             return channels;
         }
 
-        // ফিক্সড ক্যাটাগরি ট্যাব রেন্ডার করা
+        // ক্যাটাগরি ট্যাব তৈরি
         function renderCategories() {
             const catContainer = document.getElementById('categoryContainer');
             catContainer.innerHTML = '';
@@ -380,14 +385,14 @@
         }
 
         function switchCategory(cat, element) {
-            document.getElementById('search').value = ''; // ট্যাব পরিবর্তন করলে সার্চ ক্লিয়ার হবে
+            document.getElementById('search').value = ''; 
             document.querySelectorAll('.category-tab').forEach(el => el.classList.remove('active'));
             element.classList.add('active');
             currentCategory = cat;
             filterAndRender();
         }
 
-        // চ্যানেল লিস্ট তৈরি
+        // চ্যানেল লিস্ট রেন্ডর
         function renderChannels(channels) {
             const listContainer = document.getElementById('channelList');
             listContainer.innerHTML = '';
@@ -415,19 +420,18 @@
             });
         }
 
-        // 🧠 স্মার্ট নাম-ম্যাচিং ফিল্টার ইঞ্জিন (ক্যাটাগরির নাম অনুযায়ী চ্যানেল ফিল্টার করবে)
+        // নাম-ম্যাচিং ফিল্টার ইঞ্জিন (ক্যাটাগরির নাম অনুযায়ী চ্যানেল ফিল্টার করবে)
         function filterAndRender() {
             let filtered = allChannels;
 
             if (currentCategory !== 'all') {
-                // ক্যাটাগরি নামের ইমোজি এবং বাড়তি স্পেস বাদ দিয়ে পিওর টেক্সট নেওয়া (যেমন: "Sports")
+                // ইমোজি ছাড়া পিওর নাম নেওয়া
                 const pureCatName = currentCategory.replace(/[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD00-\uDFFF]/g, '').trim().toLowerCase();
                 
                 filtered = allChannels.filter(ch => {
                     if (!ch.name) return false;
                     const name = ch.name.toLowerCase();
                     
-                    // স্পেশাল কেস ম্যাপিং (Bangla এর জন্য BD বা Bangla চেক করা)
                     if (pureCatName === 'bangla') {
                         return name.includes('bangla') || name.includes('bd ') || name.includes('bptv');
                     }
@@ -442,7 +446,7 @@
             renderChannels(filtered);
         }
 
-        // গ্লোবাল সার্চ ইঞ্জিন (যেকোনো ট্যাব থেকে অল চ্যানেল সার্চ হবে)
+        // গ্লোবাল সার্চ ইঞ্জিন (যেকোনো ট্যাব থেকে 'All' এ গিয়ে নিখুঁত সার্চ করবে)
         function handleGlobalSearch() {
             const searchQuery = document.getElementById('search').value.toLowerCase().trim();
             let filtered = allChannels;
@@ -491,8 +495,8 @@
         fetch(M3U_URL)
             .then(res => res.text())
             .then(data => {
-                allChannels = parseM3U(data);
-                renderCategories(); // আপনার দেওয়া ফিক্সড ১০টি ক্যাটাগরি লোড হবে
+                allChannels = parseM3U(data); // আপনার প্রথম কোডের আসল ফাংশন ডেটা প্রসেস করছে
+                renderCategories(); 
                 renderChannels(allChannels);
                 
                 if (allChannels.length > 0) {
