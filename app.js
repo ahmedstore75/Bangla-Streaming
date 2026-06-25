@@ -1,50 +1,76 @@
-const HOST="http://xcv70.fyi:8080";
-const USER="adil2912";
-const PASS="adil1229";
+const HOST = "http://xcv70.fyi:8080";
+const USER = "adil2912";
+const PASS = "adil1229";
 
-let allChannels=[];
+let all = [];
 
-async function fetchJSON(url){
-const r=await fetch(url);
-return await r.json();
+async function api(action, category = "") {
+
+let url =
+`${HOST}/player_api.php?username=${USER}&password=${PASS}&action=${action}`;
+
+if(category){
+
+url += `&category_id=${category}`;
+
+}
+
+const res = await fetch(url,{
+mode:"cors"
+});
+
+if(!res.ok){
+
+throw new Error();
+
+}
+
+return res.json();
+
 }
 
 async function loadCategories(){
 
-try{
-
-const cats=await fetchJSON(
-`${HOST}/player_api.php?username=${USER}&password=${PASS}&action=get_live_categories`
+const box =
+document.getElementById(
+"categories"
 );
 
-const box=
-document.getElementById("categories");
+box.innerHTML =
+"Loading...";
+
+try{
+
+const cats =
+await api(
+"get_live_categories"
+);
 
 box.innerHTML="";
 
-cats.forEach(cat=>{
+cats.forEach(c=>{
 
-const item=
-document.createElement("div");
-
-item.className="cat";
-
-item.textContent=
-cat.category_name;
-
-item.onclick=()=>{
-
-loadChannels(
-cat.category_id
+const btn=
+document.createElement(
+"div"
 );
 
-};
+btn.className=
+"cat";
 
-box.appendChild(item);
+btn.innerText=
+c.category_name;
+
+btn.onclick=
+()=>loadChannels(
+c.category_id
+);
+
+box.append(btn);
 
 });
 
-if(cats.length){
+if(cats[0]){
 
 loadChannels(
 cats[0].category_id
@@ -52,12 +78,10 @@ cats[0].category_id
 
 }
 
-}catch(e){
+}catch{
 
-document.getElementById(
-"categories"
-).innerHTML=
-"Category Load Failed";
+box.innerHTML=
+"API Blocked";
 
 }
 
@@ -65,35 +89,21 @@ document.getElementById(
 
 async function loadChannels(id){
 
-try{
-
-allChannels=
-await fetchJSON(
-
-`${HOST}/player_api.php?username=${USER}&password=${PASS}&action=get_live_streams&category_id=${id}`
-
+const data=
+await api(
+"get_live_streams",
+id
 );
+
+all=data;
 
 render(
-allChannels
+all
 );
 
-}catch{
-
-document
-.getElementById(
-"channels"
-)
-
-.innerHTML=
-
-"Channel Load Failed";
-
 }
 
-}
-
-function render(list){
+function render(data){
 
 const grid=
 document.getElementById(
@@ -102,21 +112,22 @@ document.getElementById(
 
 grid.innerHTML="";
 
-list.forEach(ch=>{
+data.forEach(ch=>{
 
-const card=
+const div=
 document.createElement(
 "div"
 );
 
-card.className=
+div.className=
 "card";
 
-card.innerHTML=`
+div.innerHTML=
 
+`
 <img
 src="${ch.stream_icon||''}"
-onerror="this.style.display='none'">
+>
 
 <div class="name">
 
@@ -126,14 +137,12 @@ ${ch.name}
 
 `;
 
-card.onclick=
+div.onclick=
 ()=>play(
 ch.stream_id
 );
 
-grid.appendChild(
-card
-);
+grid.append(div);
 
 });
 
@@ -145,58 +154,63 @@ const url=
 
 `${HOST}/live/${USER}/${PASS}/${id}.m3u8`;
 
-const video=
+const v=
 document.getElementById(
 "player"
 );
 
 if(Hls.isSupported()){
 
-const hls=
+const h=
 new Hls();
 
-hls.loadSource(url);
+h.loadSource(
+url
+);
 
-hls.attachMedia(video);
+h.attachMedia(
+v
+);
 
 }else{
 
-video.src=url;
+v.src=
+url;
 
 }
 
 }
 
 document
-
 .getElementById(
 "search"
 )
 
-.addEventListener(
-"input",
+.oninput=
 
 e=>{
 
-const q=
-e.target.value
-.toLowerCase();
-
 render(
 
-allChannels.filter(
+all.filter(
+
 x=>
 
 x.name
+
 .toLowerCase()
-.includes(q)
+
+.includes(
+
+e.target.value
+.toLowerCase()
+
+)
 
 )
 
 );
 
-}
-
-);
+};
 
 loadCategories();
