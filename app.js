@@ -1,50 +1,55 @@
-// শুধু এই ৩টা বসাবেন
+// ===== শুধু এগুলো বসাবেন =====
 
-const HOST="এখানে_হোস্ট";
+const HOST="http://xcv70.fyi:8080";
 
-const USER="এখানে_ইউজার";
+const USER="adil2912";
 
-const PASS="এখানে_পাস";
+const PASS="adil1229";
 
-let channels=[];
+// ===========================
 
-async function api(action){
+let cache=[];
+
+async function fetchAPI(action){
+
+const url=
+
+`${HOST}/player_api.php?username=${USER}&password=${PASS}&action=${action}`;
 
 const r=
-await fetch(
-
-`${HOST}/player_api.php?username=${USER}&password=${PASS}&action=${action}`
-
-);
+await fetch(url);
 
 return r.json();
 
 }
 
-async function loadCats(){
+async function loadCategories(){
 
-const data=
-await api(
+try{
+
+const cats=
+await fetchAPI(
 "get_live_categories"
 );
 
-const box=
+const side=
 document.getElementById(
-"cats"
+"sidebar"
 );
 
-box.innerHTML="";
+side.innerHTML="";
 
-data.forEach(c=>{
+cats.forEach(c=>{
 
 const el=
 document.createElement(
 "div"
 );
 
-el.className="cat";
+el.className=
+"cat";
 
-el.innerText=
+el.textContent=
 c.category_name;
 
 el.onclick=
@@ -52,9 +57,35 @@ el.onclick=
 c.category_id
 );
 
-box.append(el);
+side.append(
+el
+);
 
 });
+
+if(
+cats.length
+){
+
+loadChannels(
+cats[0].category_id
+);
+
+}
+
+}
+catch{
+
+document
+.getElementById(
+"sidebar"
+)
+
+.innerHTML=
+
+"Server Error";
+
+}
 
 }
 
@@ -67,25 +98,25 @@ await fetch(
 
 );
 
-channels=
+cache=
 await r.json();
 
 render(
-channels
+cache
 );
 
 }
 
-function render(data){
+function render(list){
 
-const grid=
+const box=
 document.getElementById(
-"grid"
+"channels"
 );
 
-grid.innerHTML="";
+box.innerHTML="";
 
-data.forEach(ch=>{
+list.forEach(ch=>{
 
 const card=
 document.createElement(
@@ -98,13 +129,16 @@ card.className=
 card.innerHTML=
 
 `
-<img src="${ch.stream_icon||''}">
+<img
+src="${ch.stream_icon||''}"
+>
 
 <div class="name">
 
 ${ch.name}
 
 </div>
+
 `;
 
 card.onclick=
@@ -112,7 +146,7 @@ card.onclick=
 ch.stream_id
 );
 
-grid.append(
+box.append(
 card
 );
 
@@ -122,11 +156,11 @@ card
 
 function play(id){
 
-const url=
+const stream=
 
 `${HOST}/live/${USER}/${PASS}/${id}.m3u8`;
 
-const v=
+const video=
 document.getElementById(
 "player"
 );
@@ -139,16 +173,18 @@ const hls=
 new Hls();
 
 hls.loadSource(
-url
+stream
 );
 
 hls.attachMedia(
-v
+video
 );
 
-}else{
+}
+else{
 
-v.src=url;
+video.src=
+stream;
 
 }
 
@@ -172,7 +208,7 @@ e.target.value
 
 render(
 
-channels.filter(
+cache.filter(
 
 x=>
 
@@ -190,4 +226,4 @@ q
 
 };
 
-loadCats();
+loadCategories();
