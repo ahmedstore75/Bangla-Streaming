@@ -1,36 +1,27 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+
 <title>Premium IPTV</title>
 
 <link rel="stylesheet" href="style.css">
+
 <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 
 </head>
+
 <body>
 
-<header>
-
-<div class="brand">
-📺 PREMIUM IPTV
-</div>
+<div class="top">
 
 <input
 id="search"
-placeholder="Search Channel..."
+placeholder="Search channel..."
 >
 
-</header>
-
-<div class="container">
-
-<aside id="sidebar">
-Loading Categories...
-</aside>
-
-<main>
+</div>
 
 <video
 id="player"
@@ -40,12 +31,14 @@ playsinline>
 </video>
 
 <div
-id="channels"
-class="grid">
+id="categories"
+class="cats">
+Loading...
 </div>
 
-</main>
-
+<div
+id="channels"
+class="grid">
 </div>
 
 <script src="app.js"></script>
