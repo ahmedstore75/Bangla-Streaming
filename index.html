@@ -1,47 +1,359 @@
 <!DOCTYPE html>
 <html>
 <head>
+
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 
 <title>Premium IPTV</title>
 
-<link rel="stylesheet" href="style.css">
-
 <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+
+<style>
+
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:Arial;
+}
+
+body{
+background:linear-gradient(180deg,#06111d,#111827);
+color:#fff;
+overflow-x:hidden;
+}
+
+/* PLAYER */
+.player{
+position:sticky;
+top:0;
+z-index:999;
+height:34vh;
+background:#000;
+}
+
+video{
+width:100%;
+height:100%;
+object-fit:contain;
+}
+
+/* SEARCH */
+.header{
+position:sticky;
+top:34vh;
+z-index:998;
+padding:12px;
+background: rgba(7, 17, 29, .96);
+backdrop-filter: blur(12px);
+}
+
+#search{
+width:100%;
+padding:14px;
+border:none;
+border-radius:18px;
+background:#182233;
+color:white;
+}
+
+/* CATEGORY */
+#cats{
+position:sticky;
+top: calc(34vh + 62px);
+z-index:997;
+display:flex;
+overflow:auto;
+gap:10px;
+padding:12px;
+background: rgba(7, 17, 29, .96);
+backdrop-filter: blur(12px);
+}
+
+#cats::-webkit-scrollbar{
+display:none;
+}
+
+.cat{
+padding:12px 18px;
+border-radius:999px;
+cursor:pointer;
+white-space:nowrap;
+background: linear-gradient(45deg, #162032, #2a3950);
+}
+
+.cat.active{
+background: linear-gradient(45deg, #2563eb, #00c6ff);
+}
+
+.cat.active::after{
+content:" ✓";
+}
+
+/* CHANNEL */
+#channels{
+display:grid;
+grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+gap:14px;
+padding:14px;
+}
+
+.card{
+background: linear-gradient(180deg, #122033, #101826);
+padding:14px;
+border-radius:18px;
+cursor:pointer;
+text-align:center;
+transition: transform 0.1s;
+}
+
+.card:active {
+transform: scale(0.96);
+}
+
+.card img{
+width:80px;
+height:80px;
+border-radius:50%;
+object-fit:cover;
+border: 3px solid #2a7fff;
+}
+
+.logo{
+position:relative;
+}
+
+.live{
+position:absolute;
+right:0;
+top:0;
+background:#00d26a;
+padding:6px 10px;
+border-radius:20px;
+font-size:11px;
+}
+
+.name{
+margin-top:10px;
+font-size:13px;
+font-weight:700;
+}
+
+</style>
 
 </head>
 
 <body>
 
-<div class="top">
-
-<input
-id="search"
-placeholder="Search channel..."
->
-
+<div class="player">
+<video id="player" controls autoplay playsinline></video>
 </div>
 
-<video
-id="player"
-controls
-autoplay
-playsinline>
-</video>
+<div class="header">
+<input id="search" placeholder="Search category or channel">
+</div>
 
-<div
-id="categories"
-class="cats">
+<div id="cats">
 Loading...
 </div>
 
-<div
-id="channels"
-class="grid">
-</div>
+<div id="channels"></div>
 
-<script src="app.js"></script>
+<script>
+const HOST= "http://main.epgmaker.com/";
+const USER= "y49sz6KMQs";
+const PASS= "6115263489";
+
+let categories=[];
+let channels=[];
+let currentPlaying= null;
+let currentCategory= null;
+let hlsInstance = null; 
+let stallCheckTimeout = null;
+
+async function api(url){
+try{
+// API রিকোয়েস্টে ইউনিক টাইমস্ট্যাম্প যুক্ত করা হয়েছে ক্যাশিং এড়াতে
+const r= await fetch(`${url}&_=${Date.now()}`);
+return await r.json();
+}catch{
+return [];
+}
+}
+
+async function loadCategories(){
+categories= await api(`${HOST}/player_api.php?username=${USER}&password=${PASS}&action=get_live_categories`);
+renderCategories(categories);
+}
+
+function renderCategories(list){
+const box= document.getElementById("cats");
+box.innerHTML="";
+list.forEach(c=>{
+const div= document.createElement("div");
+div.className= "cat";
+if(currentCategory== c.category_id){
+div.classList.add("active");
+}
+div.innerText= c.category_name;
+div.onclick= ()=>{
+currentCategory= c.category_id;
+renderCategories(categories);
+loadChannels(c.category_id);
+};
+box.append(div);
+});
+
+if(!currentCategory && list[0]){
+currentCategory= list[0].category_id;
+renderCategories(categories);
+loadChannels(list[0].category_id);
+}
+}
+
+async function loadChannels(id){
+channels= await api(`${HOST}/player_api.php?username=${USER}&password=${PASS}&action=get_live_streams&category_id=${id}`);
+draw(channels);
+}
+
+function draw(data){
+const grid= document.getElementById("channels");
+grid.innerHTML="";
+data.forEach(ch=>{
+const card= document.createElement("div");
+card.className= "card";
+const live= currentPlaying== ch.stream_id;
+card.innerHTML= `
+<div class="logo">
+<img src="${ch.stream_icon||''}" onerror="this.style.display='none'">
+${live?'<div class="live">🟢 LIVE</div>':''}
+</div>
+<div class="name">
+${ch.name}
+</div>
+`;
+card.onclick= ()=>{
+currentPlaying= ch.stream_id;
+play(ch.stream_id);
+draw(channels);
+};
+grid.append(card);
+});
+}
+
+// অ্যান্টি-ব্লক এবং সেশন রিকভারি ইঞ্জিন
+function play(id){
+const video= document.getElementById("player");
+// লিংকের শেষে ডাইনামিক টাইমস্ট্যাম্প (?t=...) সার্ভার ব্লকিং বাইপাস করবে
+const m3u8= `${HOST}/live/${USER}/${PASS}/${id}.m3u8?t=${Date.now()}`;
+
+if (stallCheckTimeout) clearTimeout(stallCheckTimeout);
+if (hlsInstance) {
+    hlsInstance.detachMedia();
+    hlsInstance.destroy();
+}
+
+video.pause();
+video.removeAttribute("src"); 
+video.load(); 
+
+video.muted = true; 
+
+// ভিডিও ১ মিনিট পর ডেটা লিংক হারোপ করলে ফোর্সড রিস্টার্ট লজিক
+const handleStall = () => {
+    if (stallCheckTimeout) clearTimeout(stallCheckTimeout);
+    
+    stallCheckTimeout = setTimeout(() => {
+        if (video.paused) return;
+        console.log("Server connection dropped! Force re-attaching with fresh token...");
+        // সেশন জ্যাম হলে পুরো প্লেব্যাককে ১ সেকেন্ডে সম্পূর্ণ নতুন টোকেন দিয়ে রিস্টার্ট করবে
+        play(id);
+    }, 3500); 
+};
+
+video.onwaiting = handleStall;
+video.onstalled = handleStall;
+
+video.onplaying = () => {
+    if (stallCheckTimeout) clearTimeout(stallCheckTimeout);
+};
+
+if(Hls.isSupported()){
+hlsInstance = new Hls({
+    enableWorker: true,
+    lowLatencyMode: false,
+    maxBufferLength: 6,            // টাইট বাফার যাতে ডেটা ব্লক না হয়
+    maxMaxBufferLength: 12,
+    maxBufferSize: 15 * 1024 * 1024, 
+    liveSyncDurationCount: 2,      // একদম লাইভ এজের কাছাকাছি থাকবে
+    
+    fragLoadingTimeOut: 3500,
+    manifestLoadingTimeOut: 3500,
+    
+    // প্রতিটা ছোট ফাইলের (Segment) সাথে ইউনিক রিকোয়েস্ট আইডি পাঠানো
+    xhrSetup: function (xhr, url) {
+        const freshUrl = url + (url.includes('?') ? '&' : '?') + 'cb=' + Date.now();
+        xhr.open('GET', freshUrl, true);
+    }
+});
+
+hlsInstance.loadSource(m3u8);
+hlsInstance.attachMedia(video);
+
+hlsInstance.on(Hls.Events.MANIFEST_PARSED, function () {
+    const playPromise = video.play();
+    if (playPromise !== undefined) {
+        playPromise.then(_ => {
+            video.muted = false; 
+        }).catch(error => {
+            video.play(); 
+        });
+    }
+});
+
+hlsInstance.on(Hls.Events.ERROR, function (event, data) {
+    if (data.fatal) {
+        switch (data.type) {
+            case Hls.ErrorTypes.NETWORK_ERROR:
+                hlsInstance.startLoad();
+                break;
+            case Hls.ErrorTypes.MEDIA_ERROR:
+                hlsInstance.recoverMediaError();
+                break;
+            default:
+                // কোনোভাবে স্ট্রিম ব্লক হলে সাথে সাথে ব্যাকগ্রাউন্ডে রি-কানেক্ট করবে
+                setTimeout(() => play(id), 500);
+                break;
+        }
+    }
+});
+
+} else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+    // iOS / Safari
+    video.src = m3u8;
+    video.play().then(() => video.muted = false).catch(e => video.play());
+}
+}
+
+// সার্চ ফিল্টার লজিক
+document.getElementById("search").addEventListener("input", e=>{
+const q= e.target.value.toLowerCase().trim();
+if(!q){
+renderCategories(categories);
+draw(channels);
+return;
+}
+const cat= categories.filter(x=> x.category_name.toLowerCase().includes(q));
+if(cat.length){
+renderCategories(cat);
+return;
+}
+draw(channels.filter(x=> x.name.toLowerCase().includes(q)));
+});
+
+loadCategories();
+</script>
 
 </body>
 </html>
